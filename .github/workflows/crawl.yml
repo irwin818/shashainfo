@@ -11,13 +11,11 @@ jobs:
   crawl:
     runs-on: ubuntu-latest
     
-    # 关键修复：赋予写权限，允许 push 代码
-    permissions:
-      contents: write
-    
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
+      with:
+        persist-credentials: false # 必须设置为 false，否则会使用默认 token
 
     - name: Set up Python
       uses: actions/setup-python@v4
@@ -36,12 +34,16 @@ jobs:
       run: |
         python backend/crawler/crawler.py
 
-    - name: Commit and push changes
-      # 注意：这会将更新后的 SQLite 数据库提交回仓库
-      # 仅适用于个人项目/演示。生产环境建议使用 Supabase/MySQL 等外部数据库。
+    - name: Commit changes
       run: |
-        git config --global user.name 'GitHub Action'
-        git config --global user.email 'action@github.com'
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
         git add backend/db/news.db
-        # 如果有变动才提交，避免报错
-        git diff --quiet && git diff --staged --quiet || (git commit -m "Auto-update news database" && git push)
+        # 如果没有变化，这里会退出（这是正常的，不需要报错）
+        git diff --quiet && git diff --staged --quiet || git commit -m "Auto-update news database"
+
+    - name: Push changes
+      uses: ad-m/github-push-action@master
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        branch: ${{ github.ref }}
