@@ -1,0 +1,27 @@
+<view class="container">
+  <view class="news-list">
+    <block wx:for="{{newsList}}" wx:key="id">
+      <view class="news-item">
+        <!-- 标题区域 (点击展开/收起) -->
+        <view class="news-header" bindtap="toggleSummary" data-index="{{index}}">
+          <view class="news-title {{item.expanded ? 'active' : ''}}">{{item.title}}</view>
+          <view class="news-meta">
+            <text class="news-source">{{item.source}}</text>
+            <text class="news-time">{{item.publish_time}}</text>
+            <text class="expand-icon">{{item.expanded ? '收起 ▲' : '展开 ▼'}}</text>
+          </view>
+        </view>
+
+        <!-- 摘要区域 (展开显示) -->
+        <view class="news-summary" wx:if="{{item.expanded}}">
+          <rich-text nodes="{{item.summary_html}}"></rich-text>
+          <!-- 如果是纯文本可以用 text -->
+          <!-- <text user-select="true">{{item.summary}}</text> -->
+        </view>
+      </view>
+    </block>
+    
+    <view class="loading" wx:if="{{loading}}">加载中...</view>
+    <view class="empty" wx:if="{{!loading && newsList.length === 0}}">暂无资讯</view>
+  </view>
+</view>
