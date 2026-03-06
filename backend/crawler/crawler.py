@@ -114,16 +114,24 @@ def save_to_db(news_item):
     cursor = conn.cursor()
     
     try:
-        # 1. 检查是否已存在 (避免重复调用 AI 浪费钱)
+        # 1. 检查是否已存在
         cursor.execute('SELECT title, summary FROM news WHERE original_url = ?', (news_item['url'],))
         existing = cursor.fetchone()
         
-        # 如果已存在且有摘要，跳过 (除非你想强制刷新)
-        if existing and existing['summary'] and "AI 摘要 (Mock)" not in existing['summary']:
-            print(f"⏭️ 已存在且已有摘要: {news_item['title']}")
-            return
+        # 智能跳过逻辑：
+        # 如果已存在，且摘要不包含 "Mock" 或 "模拟" 字样，说明已经是真实摘要，跳过（省钱）。
+        # 如果包含 "Mock"，说明是旧数据，需要覆盖。
+        if existing and existing['summary']:
+            summary_text = existing['summary']
+            is_mock = "**【AI 摘要 (Mock)】**" in summary_text or "【模拟】" in summary_text or "Mock" in summary_text
+            
+            if not is_mock:
+                print(f"⏭️ 已存在真实摘要 (跳过): {news_item['title']}")
+                return
+            else:
+                print(f"🔄 发现旧 Mock 数据，准备覆盖: {news_item['title']}")
 
-        # 2. 生成摘要 (只有新数据或 Mock 数据才调用 AI)
+        # 2. 生成摘要 (调用 AI)
         summary = ai_summarize(news_item['title'], news_item['content'])
         
         # 3. 插入或更新
