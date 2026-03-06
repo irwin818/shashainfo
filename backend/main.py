@@ -1,10 +1,15 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 import sqlite3
 import os
 from pydantic import BaseModel
 from typing import List, Optional
 from contextlib import asynccontextmanager
+
+# 导入爬虫模块 (确保 crawler.py 在 backend/crawler 目录下)
+import sys
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+from crawler import crawler
 
 # --- 数据库配置 ---
 # 获取当前文件所在目录 (backend)
@@ -103,3 +108,20 @@ def get_news(limit: int = 20, offset: int = 0):
         return []
     finally:
         conn.close()
+
+# --- 新增：手动触发爬虫的接口 ---
+def run_crawler_task():
+    print("Starting manual crawler task...")
+    try:
+        crawler.run()
+        print("Manual crawler task finished.")
+    except Exception as e:
+        print(f"Manual crawler task failed: {e}")
+
+@app.get("/crawl")
+def trigger_crawler(background_tasks: BackgroundTasks):
+    """
+    手动触发爬虫 (后台运行) - GET 方便浏览器直接调用
+    """
+    background_tasks.add_task(run_crawler_task)
+    return {"message": "Crawler started in background"}
